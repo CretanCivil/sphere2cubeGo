@@ -38,10 +38,10 @@ func SaveTile(tileResult worker.TileResult, outPutDir string) error {
 		return err
 	}
 
-	src512 := imaging.Resize(tileResult.Image, 512, 0, imaging.BSpline)
+	src512 := imaging.Resize(tileResult.Image, 512, 0, imaging.Linear)
 	err = imaging.Save(src512, filepath.Join(outPutDir, "tiles/512_face"+tileResult.Tile.TileName+"_0_0.jpg"))
 
-	src51k := imaging.Resize(tileResult.Image, 1024, 0, imaging.BSpline)
+	src51k := imaging.Resize(tileResult.Image, 1024, 0, imaging.Linear)
 	for  i := 0; i < 2;i++ {
 		for  j := 0; j < 2;j++ {
 			src512 = imaging.Crop(src51k,image.Rectangle{Min:image.Point{i*512,j*512},Max:image.Point{(i+1)*512,(j+1)*512}})
