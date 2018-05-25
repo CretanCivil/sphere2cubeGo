@@ -20,7 +20,7 @@ var (
 		worker.TileLeft,
 	}
 
-	tileSize          = 1024
+	tileSize          = 2048
 	originalImagePath = ""
 	outPutDir         = "./build"
 

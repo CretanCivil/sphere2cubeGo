@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 )
+
 /*
 const (
 	TileUp    = "up"
@@ -45,19 +46,19 @@ func (tile *Tile) getHalfSize() float64 {
 
 // Pixel struct
 type Pixel struct {
-	R int
-	G int
-	B int
-	A int
+	R uint32
+	G uint32
+	B uint32
+	A uint32
 }
 
 func (pixel *Pixel) pixelToRGBA() color.Color {
-	return color.RGBA64{uint16(pixel.R * 257), uint16(pixel.G * 257), uint16(pixel.B * 257), uint16(pixel.A * 257)}
+	return color.RGBA64{uint16(pixel.R), uint16(pixel.G), uint16(pixel.B), uint16(pixel.A)}
 }
 
 // img.At(x, y).RGBA() returns four uint32 values; we want a Pixel
 func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) Pixel {
-	return Pixel{int(r / 257), int(g / 257), int(b / 257), int(a / 257)}
+	return Pixel{r, g, b, a}
 }
 
 // Get the bi-dimensional pixel array
@@ -98,7 +99,7 @@ func updatePhi(half_size float64, phi float64, major_dir int, minor_dir int, maj
 	return phi
 }
 
-func phi2Width(width int, phi float64) int {
+func phi2Width(width int, phi float64) float64 {
 	x := 0.5 * float64(width) * (phi/math.Pi + 1)
 
 	if x < 1 {
@@ -107,11 +108,59 @@ func phi2Width(width int, phi float64) int {
 		x -= float64(width)
 	}
 
-	return int(x)
+	return x
 }
 
-func theta2Height(height int, theta float64) int {
-	return int(float64(height) * theta / math.Pi)
+func theta2Height(height int, theta float64) float64 {
+	return float64(height) * theta / math.Pi
+}
+
+func between(value ,min, max int) int {
+	value = int(math.Max(float64(value),float64(min)))
+	value = int(math.Min(float64(value),float64(max)))
+	return value
+}
+func copyPixelBilinear(originalImage [][]Pixel, x float64, y float64) Pixel {
+
+	/*-----p00(xl,yl)----x,y-----p01(xr,y1)----*/
+
+	/*-----p10(xl,yr)-----x,y----p11(xr,yr)----*/
+
+	xl := between(int(math.Floor(x)),0,len(originalImage[0]) - 1)
+
+	xr := between(int(math.Ceil(x)),0,len(originalImage[0]) - 1)
+	xf := x - float64(xl)
+
+	yl := between(int(math.Floor(y)),0,len(originalImage) -1 )
+	yr := between(int(math.Ceil(y)),0,len(originalImage) -1)
+	yf := y - float64(yl)
+
+	p00 := originalImage[yl][xl]
+	p10 := originalImage[yr][xl]
+	p01 := originalImage[yl][xr]
+	p11 := originalImage[yr][xr]
+
+	pixel := Pixel{}
+
+	r0 := float64(p00.R)*(1-xf) + float64(p01.R)*xf
+	r1 := float64(p10.R)*(1-xf) + float64(p11.R)*xf
+	pixel.R = uint32(r0*(1-yf) + r1*yf)
+
+	r0 = float64(p00.A)*(1-xf) + float64(p01.A)*xf
+	r1 = float64(p10.A)*(1-xf) + float64(p11.A)*xf
+	pixel.A = uint32(r0*(1-yf) + r1*yf)
+
+	r0 = float64(p00.G)*(1-xf) + float64(p01.G)*xf
+	r1 = float64(p10.G)*(1-xf) + float64(p11.G)*xf
+	pixel.G = uint32(r0*(1-yf) + r1*yf)
+
+	r0 = float64(p00.B)*(1-xf) + float64(p01.B)*xf
+	r1 = float64(p10.B)*(1-xf) + float64(p11.B)*xf
+	pixel.B = uint32(r0*(1-yf) + r1*yf)
+
+
+
+	return pixel
 }
 
 func processCords(tileX int, tileY int, originalImage [][]Pixel, tile Tile, mathCache cache.CacheAngles) Pixel {
@@ -149,7 +198,9 @@ func processCords(tileX int, tileY int, originalImage [][]Pixel, tile Tile, math
 	spX := phi2Width(sphereWidth, phi)
 	spY := theta2Height(sphereHeight, theta)
 
-	return originalImage[spY][spX]
+
+	return copyPixelBilinear(originalImage,spX,spY)
+	//return originalImage[spY][spX]
 }
 
 func Worker(tile Tile, mathCache cache.CacheAngles, originalImagePath string, done chan TileResult) {

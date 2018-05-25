@@ -26,3 +26,6 @@ Also you can specify output dir via param -o
 ```bash
 ./sphere2cubeGo -i panorama.jpg -s 2048 -o /path/to/result/dir
 ```
+
+### Add what:
+ 原作者没有进行 插值，导致锯齿严重，参考 参考https://github.com/jaxry/panorama-to-cubemap进行插值
